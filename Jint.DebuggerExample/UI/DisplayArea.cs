@@ -36,7 +36,6 @@ namespace Jint.DebuggerExample.UI
         {
             if (visible && (force || invalidated))
             {
-                Trace.TraceInformation($"Redrawing {this}");
                 Redraw();
                 invalidated = false;
             }

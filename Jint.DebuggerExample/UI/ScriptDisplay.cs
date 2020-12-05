@@ -57,6 +57,7 @@ namespace Jint.DebuggerExample.UI
             int lineNumberWidth = lines.Count.ToString().Length;
 
             List<string> displayLines = new List<string>();
+            displayLines.Add(Colorizer.Foreground($"Script: {script.Id}", Colors.Header));
             for (int i = 0; i < lines.Count; i++)
             {
                 string line = lines[i];
@@ -65,7 +66,7 @@ namespace Jint.DebuggerExample.UI
                 // without overwriting what's already there. So, we convert them to spaces here
                 line = line.TabsToSpaces(4);
 
-                string lineNumber = (i + 1).ToString().PadLeft(lineNumberWidth);
+                string lineNumber = " " + (i + 1).ToString().PadLeft(lineNumberWidth) + " ";
 
                 if (debugger.HasBreakPoint(script.Id, i + 1))
                 {

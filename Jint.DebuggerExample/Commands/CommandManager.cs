@@ -8,7 +8,8 @@ namespace Jint.DebuggerExample.Commands
 {
     public class CommandManager
     {
-        private Dictionary<string, Command> commands = new Dictionary<string, Command>();
+        private Dictionary<string, Command> commandsByName = new Dictionary<string, Command>();
+        private List<Command> commands = new List<Command>();
         private Regex ArgumentSeparator = new Regex(@"[ \t]+");
 
         public bool Parse(string commandLine)
@@ -22,7 +23,7 @@ namespace Jint.DebuggerExample.Commands
             string commandName = parts[0].ToLowerInvariant();
             parts.RemoveAt(0);
 
-            if (commands.TryGetValue(commandName, out Command command))
+            if (commandsByName.TryGetValue(commandName, out Command command))
             {
                 command.Handler(parts.ToArray());
                 return true;
@@ -33,17 +34,21 @@ namespace Jint.DebuggerExample.Commands
 
         public CommandManager Add(Command command)
         {
-            commands.Add(command.Name, command);
+            commands.Add(command);
+            commandsByName.Add(command.Name, command);
+            if (command.ShortName != null)
+            {
+                commandsByName.Add(command.ShortName, command);
+            }
             return this;
         }
 
         public string BuildHelp()
         {
             StringBuilder builder = new StringBuilder();
-            builder.AppendLine("Debugger commands:");
-            foreach (var command in commands.Values)
+            foreach (var command in commands)
             {
-                builder.AppendLine($"    {command.Name,-15}{command.Description}");
+                builder.AppendLine($"    {command.Name,-15} {command.ShortName,-3} {command.Description}");
             }
             return builder.ToString();
         }

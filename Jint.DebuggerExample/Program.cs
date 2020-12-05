@@ -1,8 +1,10 @@
 ﻿using Jint.DebuggerExample.Commands;
 using Jint.DebuggerExample.Debug;
 using Jint.DebuggerExample.UI;
+using Jint.DebuggerExample.Utilities;
 using Jint.Runtime.Debugger;
 using System;
+using System.Text;
 using System.Threading;
 
 namespace Jint.DebuggerExample
@@ -17,23 +19,25 @@ namespace Jint.DebuggerExample
         private static ScriptDisplay scriptDisplay;
         private static Prompt prompt;
         private static ErrorDisplay errorDisplay;
-        private static TextDisplay textDisplay;
+        private static TextDisplay callStackDisplay;
+        private static TextDisplay helpDisplay;
 
         private static AreaToggler mainDisplayToggler;
 
         static void Main(string[] args)
         {
             commandManager = new CommandManager()
-                .Add(new Command("run", "Run without stepping", Run))
-                .Add(new Command("pause", "Pause execution", Pause))
-                .Add(new Command("stop", "Cancel execution", Stop))
-                .Add(new Command("out", "Step out", StepOut))
-                .Add(new Command("over", "Step over", StepOver))
-                .Add(new Command("into", "Step into", StepInto))
-                .Add(new Command("bp", "Toggle breakpoint", ToggleBreakPoint))
-                .Add(new Command("help", "Display list of commands", ShowHelp))
-                .Add(new Command("list", "Display source view", ShowSource))
-                .Add(new Command("exit", "Exit the debuger", Exit));
+                .Add(new Command("continue", "c", "Run without stepping", Run))
+                .Add(new Command("pause", "p", "Pause execution", Pause))
+                .Add(new Command("kill", "Cancel execution", Stop))
+                .Add(new Command("step", "s", "Step into", StepInto))
+                .Add(new Command("next", "n", "Step over", StepOver))
+                .Add(new Command("up", "Step out", StepOut))
+                .Add(new Command("break", "bp", "Toggle breakpoint", ToggleBreakPoint))
+                .Add(new Command("list", "l", "Display source view", ShowSource))
+                .Add(new Command("callstack", "Display call stack", ShowCallStack))
+                .Add(new Command("help", "h", "Display list of commands", ShowHelp))
+                .Add(new Command("exit", "x", "Exit the debuger", Exit));
 
             SetupDebugger(args);
 
@@ -58,19 +62,22 @@ namespace Jint.DebuggerExample
 
             mainDisplayToggler = new AreaToggler();
 
-            textDisplay = new TextDisplay(display);
             scriptDisplay = new ScriptDisplay(display, debugger);
+            callStackDisplay = new TextDisplay(display);
+            helpDisplay = new TextDisplay(display);
 
             mainDisplayToggler
-                .Add(textDisplay)
-                .Add(scriptDisplay);
+                .Add(scriptDisplay)
+                .Add(callStackDisplay)
+                .Add(helpDisplay);
 
             prompt = new Prompt(display);
 
             errorDisplay = new ErrorDisplay(display);
 
             display.Add(scriptDisplay);
-            display.Add(textDisplay);
+            display.Add(helpDisplay);
+            display.Add(callStackDisplay);
             display.Add(prompt);
             display.Add(errorDisplay);
         }
@@ -118,6 +125,14 @@ namespace Jint.DebuggerExample
 
             scriptDisplay.Script = scriptLoader.GetScript(source);
             scriptDisplay.ExecutingLocation = info.CurrentStatement.Location;
+
+            StringBuilder builder = new StringBuilder();
+            builder.AppendLine(Colorizer.Foreground("Call stack", Colors.Header));
+            foreach (var item in info.CallStack)
+            {
+                builder.AppendLine($"    {item}");
+            }
+            callStackDisplay.Content = builder.ToString();
 
             mainDisplayToggler.Show(scriptDisplay);
         }
@@ -212,11 +227,18 @@ namespace Jint.DebuggerExample
             mainDisplayToggler.Show(scriptDisplay);
         }
 
+        private static void ShowCallStack(string[] arguments)
+        {
+            mainDisplayToggler.Show(callStackDisplay);
+        }
+
         private static void ShowHelp(string[] arguments)
         {
-            var help = commandManager.BuildHelp();
-            textDisplay.Content = help;
-            mainDisplayToggler.Show(textDisplay);
+            var help = Colorizer.Foreground("Debugger commands", Colors.Header) +
+                Environment.NewLine + 
+                commandManager.BuildHelp();
+            helpDisplay.Content = help;
+            mainDisplayToggler.Show(helpDisplay);
         }
 
         private static void Exit(string[] arguments)
