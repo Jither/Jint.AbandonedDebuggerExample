@@ -12,7 +12,7 @@ namespace Jint.DebuggerExample.UI
     public class ScriptDisplay : DisplayArea
     {
         private ScriptData script;
-        private Location executingLocation;
+        private Location? executingLocation;
 
         public ScriptData Script
         {
@@ -27,7 +27,7 @@ namespace Jint.DebuggerExample.UI
             }
         }
 
-        public Location ExecutingLocation
+        public Location? ExecutingLocation
         {
             get => executingLocation;
             set
@@ -64,7 +64,7 @@ namespace Jint.DebuggerExample.UI
                 line = line.TabsToSpaces(4);
 
                 string lineNumber = (i + 1).ToString().PadLeft(lineNumberWidth);
-                if (executingLocation.Start.Line == i + 1)
+                if (executingLocation != null && executingLocation.Value.Start.Line == i + 1)
                 {
                     line = Colorizer.Foreground(line, Colors.ExecutingLine);
                 }

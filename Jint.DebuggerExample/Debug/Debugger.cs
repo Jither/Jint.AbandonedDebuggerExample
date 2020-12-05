@@ -25,6 +25,11 @@ namespace Jint.DebuggerExample.Debug
         public event Action<DebugInformation> Pause;
 
         /// <summary>
+        /// Triggered when debugger continues running after a pause.
+        /// </summary>
+        public event Action Continue;
+
+        /// <summary>
         /// Triggered when debugger is done executing all its scripts.
         /// </summary>
         public event Action Done;
@@ -136,6 +141,7 @@ namespace Jint.DebuggerExample.Debug
             waitForInterface.Reset();
 
             IsRunning = true;
+            Continue?.Invoke();
 
             return nextStep;
         }
@@ -150,6 +156,8 @@ namespace Jint.DebuggerExample.Debug
             // change the StepMode later (except if we hit a Break event).
             // So, instead we simply set a flag and check it in the Step event
             noStepping = true;
+            nextStep = StepMode.Into;
+            waitForInterface.Set();
         }
 
         /// <summary>

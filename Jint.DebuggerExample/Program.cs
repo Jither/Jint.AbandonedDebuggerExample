@@ -79,6 +79,7 @@ namespace Jint.DebuggerExample
             debugger = new Debugger();
 
             debugger.Pause += Debugger_Pause;
+            debugger.Continue += Debugger_Continue;
 
             scriptLoader = new ScriptLoader(debugger);
 
@@ -97,6 +98,15 @@ namespace Jint.DebuggerExample
         {
             // We're being called from the Jint thread. Execute on UI thread:
             Dispatcher.Invoke(() => UpdateDisplay(info));
+        }
+
+        private static void Debugger_Continue()
+        {
+            // We're being called from the Jint thread. Execute on UI thread:
+            Dispatcher.Invoke(() =>
+            {
+                scriptDisplay.ExecutingLocation = null;
+            });
         }
 
         private static void UpdateDisplay(DebugInformation info)
