@@ -12,6 +12,7 @@ namespace Jint.DebuggerExample.UI
     public class ScriptDisplay : DisplayArea
     {
         private ScriptData script;
+        private Debugger debugger;
         private Location? executingLocation;
 
         public ScriptData Script
@@ -40,8 +41,9 @@ namespace Jint.DebuggerExample.UI
             }
         }
 
-        public ScriptDisplay(Display display) : base(display, new Bounds(0, 0, Length.Percent(100), -2))
+        public ScriptDisplay(Display display, Debugger debugger) : base(display, new Bounds(0, 0, Length.Percent(100), -2))
         {
+            this.debugger = debugger;
         }
 
         public override void Redraw()
@@ -64,6 +66,12 @@ namespace Jint.DebuggerExample.UI
                 line = line.TabsToSpaces(4);
 
                 string lineNumber = (i + 1).ToString().PadLeft(lineNumberWidth);
+
+                if (debugger.HasBreakPoint(script.Id, i + 1))
+                {
+                    lineNumber = Colorizer.Background(lineNumber, Colors.BreakPoint);
+                }
+
                 if (executingLocation != null && executingLocation.Value.Start.Line == i + 1)
                 {
                     line = Colorizer.Foreground(line, Colors.ExecutingLine);

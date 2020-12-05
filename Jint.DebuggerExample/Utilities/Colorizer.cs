@@ -23,5 +23,10 @@ namespace Jint.DebuggerExample.Utilities
         {
             return $"\u001b[38;2;{color.Red};{color.Green};{color.Blue}m{text}\u001b[0m";
         }
+
+        public static string Background(string text, RgbColor color)
+        {
+            return $"\u001b[48;2;{color.Red};{color.Green};{color.Blue}m{text}\u001b[0m";
+        }
     }
 }

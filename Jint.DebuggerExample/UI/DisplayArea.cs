@@ -42,7 +42,7 @@ namespace Jint.DebuggerExample.UI
             }
         }
 
-        protected void Invalidate()
+        public void Invalidate()
         {
             invalidated = true;
         }

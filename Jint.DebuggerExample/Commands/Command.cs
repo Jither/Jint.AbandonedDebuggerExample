@@ -2,6 +2,13 @@
 
 namespace Jint.DebuggerExample.Commands
 {
+    public class CommandException : Exception
+    {
+        public CommandException(string message) : base(message)
+        {
+        }
+    }
+
     public class Command
     {
         public string Name { get; }

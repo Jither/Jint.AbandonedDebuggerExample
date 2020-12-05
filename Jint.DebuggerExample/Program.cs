@@ -26,19 +26,20 @@ namespace Jint.DebuggerExample
             commandManager = new CommandManager()
                 .Add(new Command("run", "Run without stepping", Run))
                 .Add(new Command("pause", "Pause execution", Pause))
-                .Add(new Command("stop", "Pause execution", Stop))
+                .Add(new Command("stop", "Cancel execution", Stop))
                 .Add(new Command("out", "Step out", StepOut))
                 .Add(new Command("over", "Step over", StepOver))
                 .Add(new Command("into", "Step into", StepInto))
+                .Add(new Command("bp", "Toggle breakpoint", ToggleBreakPoint))
                 .Add(new Command("help", "Display list of commands", ShowHelp))
-                .Add(new Command("source", "Display source view", ShowSource))
+                .Add(new Command("list", "Display source view", ShowSource))
                 .Add(new Command("exit", "Exit the debuger", Exit));
+
+            SetupDebugger(args);
 
             SetupUI();
 
             prompt.Command += Prompt_Command;
-
-            SetupDebugger(args);
 
             prompt.Start();
             display.Start();
@@ -58,7 +59,7 @@ namespace Jint.DebuggerExample
             mainDisplayToggler = new AreaToggler();
 
             textDisplay = new TextDisplay(display);
-            scriptDisplay = new ScriptDisplay(display);
+            scriptDisplay = new ScriptDisplay(display, debugger);
 
             mainDisplayToggler
                 .Add(textDisplay)
@@ -123,14 +124,21 @@ namespace Jint.DebuggerExample
 
         private static void Prompt_Command(string commandLine)
         {
-            bool handled = commandManager.Parse(commandLine);
-            if (!handled)
+            try
             {
-                errorDisplay.Error = $"Unknown command '{commandLine}'. Type 'help' for a list of commands.";
+                bool handled = commandManager.Parse(commandLine);
+                if (!handled)
+                {
+                    throw new CommandException($"Unknown command '{commandLine}'. Type 'help' for a list of commands.");
+                }
+                else
+                {
+                    errorDisplay.Error = null;
+                }
             }
-            else
+            catch (CommandException ex)
             {
-                errorDisplay.Error = null;
+                errorDisplay.Error = ex.Message;
             }
         }
 
@@ -162,6 +170,41 @@ namespace Jint.DebuggerExample
         private static void StepInto(string[] arguments)
         {
             debugger.StepInto();
+        }
+
+        private static void ToggleBreakPoint(string[] arguments)
+        {
+            string scriptId = scriptDisplay.Script.Id;
+            int line;
+            switch (arguments.Length)
+            {
+                case 1:
+                    line = Int32.Parse(arguments[0]);
+                    break;
+                case 2:
+                    scriptId = arguments[0];
+                    line = Int32.Parse(arguments[1]);
+                    break;
+                default:
+                    throw new CommandException("Usage: bp <script id> [line number]");
+            }
+
+            if (debugger.HasBreakPoint(scriptId, line))
+            {
+                debugger.RemoveBreakPoint(scriptId, line);
+            }
+            else
+            {
+                if (!debugger.TryAddBreakPoint(scriptId, line))
+                {
+                    throw new CommandException($"Failed adding breakpoint at {scriptId} line {line}");
+                }
+            }
+
+            if (scriptDisplay.Script.Id == scriptId)
+            {
+                scriptDisplay.Invalidate();
+            }
         }
 
         private static void ShowSource(string[] arguments)

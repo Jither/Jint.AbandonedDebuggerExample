@@ -22,5 +22,26 @@ namespace Jint.DebuggerExample.Debug
 
             Lines = Script.SplitIntoLines();
         }
+
+        public Node GetNodeAtLine(Node parent, int line)
+        {
+            foreach (var node in parent.ChildNodes)
+            {
+                if (node == null)
+                {
+                    continue;
+                }
+                if (node.Location.Start.Line == line)
+                {
+                    return node;
+                }
+                var child = GetNodeAtLine(node, line);
+                if (child != null)
+                {
+                    return child;
+                }
+            }
+            return null;
+        }
     }
 }

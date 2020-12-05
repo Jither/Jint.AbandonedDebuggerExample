@@ -3,6 +3,7 @@ using Esprima.Ast;
 using Jint.Runtime.Debugger;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -36,7 +37,7 @@ namespace Jint.DebuggerExample.Debug
 
         public bool IsRunning { get; private set; }
 
-        private readonly Queue<ScriptData> scripts = new Queue<ScriptData>();
+        private readonly List<ScriptData> scripts = new List<ScriptData>();
         private readonly Engine engine;
 
         private StepMode nextStep;
@@ -74,7 +75,12 @@ namespace Jint.DebuggerExample.Debug
             });
             data.Ast = parser.ParseScript();
 
-            scripts.Enqueue(data);
+            scripts.Add(data);
+        }
+
+        private ScriptData GetScript(string id)
+        {
+            return scripts.SingleOrDefault(script => script.Id == id);
         }
 
         /// <summary>
@@ -100,10 +106,12 @@ namespace Jint.DebuggerExample.Debug
                 {
                     try
                     {
-                        while (scripts.Count > 0)
+                        int currentScriptIndex = 0;
+                        while (currentScriptIndex < scripts.Count)
                         {
-                            ScriptData script = scripts.Dequeue();
+                            ScriptData script = scripts[currentScriptIndex];
                             engine.Execute(script.Ast);
+                            currentScriptIndex++;
                         }
                     }
                     catch (CancelExecutionException)
@@ -121,15 +129,8 @@ namespace Jint.DebuggerExample.Debug
 
         private StepMode OnPause(DebugInformation e)
         {
-            if (cts.IsCancellationRequested)
-            {
-                throw new CancelExecutionException();
-            }
-            if (noStepping)
-            {
-                // If we aren't stepping, immediately step (into) to the next statement.
-                return StepMode.Into;
-            }
+            // If we've been running (not stepping) and got here (through Break), revert to stepping
+            Stop();
 
             IsRunning = false;
             Pause?.Invoke(e);
@@ -195,6 +196,43 @@ namespace Jint.DebuggerExample.Debug
         }
 
         /// <summary>
+        /// Adds breakpoint
+        /// </summary>
+        /// <param name="scriptId">ID of script</param>
+        /// <param name="line">Line number (starting from 1)</param>
+        /// <returns></returns>
+        public bool TryAddBreakPoint(string scriptId, int line)
+        {
+            ScriptData script = GetScript(scriptId);
+            if (script == null)
+            {
+                return false;
+            }
+            var node = script.GetNodeAtLine(script.Ast, line);
+            if (node == null)
+            {
+                return false;
+            }
+            engine.BreakPoints.Add(new BreakPoint(node.Location.Source, node.Location.Start.Line, node.Location.Start.Column));
+            return true;
+        }
+
+        /// <summary>
+        /// Removes breakpoint
+        /// </summary>
+        /// <param name="scriptId">ID of script</param>
+        /// <param name="line">Line number (starting from 1)</param>
+        public void RemoveBreakPoint(string scriptId, int line)
+        {
+            engine.BreakPoints.Remove(engine.BreakPoints.SingleOrDefault(bp => bp.Source == scriptId && bp.Line == line));
+        }
+
+        public bool HasBreakPoint(string scriptId, int line)
+        {
+            return engine.BreakPoints.Any(bp => bp.Source == scriptId && bp.Line == line);
+        }
+
+        /// <summary>
         /// Cancels script execution.
         /// </summary>
         public void Cancel()
@@ -204,11 +242,24 @@ namespace Jint.DebuggerExample.Debug
 
         private StepMode Engine_Break(object sender, DebugInformation e)
         {
+            if (cts.IsCancellationRequested)
+            {
+                throw new CancelExecutionException();
+            }
             return OnPause(e);
         }
 
         private StepMode Engine_Step(object sender, DebugInformation e)
         {
+            if (cts.IsCancellationRequested)
+            {
+                throw new CancelExecutionException();
+            }
+            if (noStepping)
+            {
+                // If we aren't stepping, immediately step (into) to the next statement.
+                return StepMode.Into;
+            }
             return OnPause(e);
         }
     }
