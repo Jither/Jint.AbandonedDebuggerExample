@@ -1,4 +1,5 @@
 ﻿using Esprima.Ast;
+using Jint.DebuggerExample.Utilities;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
@@ -6,8 +7,6 @@ namespace Jint.DebuggerExample.Debug
 {
     public class ScriptData
     {
-        private static Regex NewLine = new Regex(@"\r?\n");
-
         public string Id { get; }
         public string Path { get; }
         public string Script { get; }
@@ -21,7 +20,7 @@ namespace Jint.DebuggerExample.Debug
             Path = path;
             Script = script;
 
-            Lines = NewLine.Split(script);
+            Lines = Script.SplitIntoLines();
         }
     }
 }

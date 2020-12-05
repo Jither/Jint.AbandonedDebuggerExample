@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Jint.DebuggerExample.Utilities;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,14 +9,12 @@ namespace Jint.DebuggerExample.UI
     public class Prompt : DisplayArea
     {
         private bool running;
-        private Display display;
         private string prompt = "debug>";
 
         public event Action<string> Command;
 
-        public Prompt(Display display)
+        public Prompt(Display display) : base(display, new Bounds(0, -2, Length.Percent(100), 1))
         {
-            this.display = display;
         }
 
         public void Start()
@@ -35,11 +34,8 @@ namespace Jint.DebuggerExample.UI
             // however, which means anything typed after redrawing will be appended to what was
             // there before when pressing ENTER, and it will be possible to backspace over the "prompt>" text.
             // There's no easy way around this. For now, don't resize mid-typing.
-            Dispatcher.Invoke(() =>
-            {
-                display.ReplaceLine(prompt + " ", display.Rows - 2);
-                display.MoveCursor(prompt.Length + 1, display.Rows - 2);
-            });
+            display.DrawText(prompt, bounds);
+            display.MoveCursor(prompt.Length + 1, bounds.Top.ToAbsolute(display.Rows));
         }
 
         private void Input()
@@ -47,7 +43,7 @@ namespace Jint.DebuggerExample.UI
             running = true;
             while (running)
             {
-                Redraw();
+                Invalidate();
                 // Yeah, ReadLine is blocking, so can't cancel this thread if it's pending.
                 // But we get a bit lucky here - when we cancel the thread due to an "exit" command,
                 // we've just left the ReadLine call.

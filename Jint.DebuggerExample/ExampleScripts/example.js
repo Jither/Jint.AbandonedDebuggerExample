@@ -15,3 +15,10 @@ else
 {
 	z = x - y;
 }
+
+while (true)
+{
+	const x = Math.random();
+	const p = Math.PI;
+	const result = x * p;
+}

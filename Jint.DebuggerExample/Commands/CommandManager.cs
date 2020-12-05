@@ -43,7 +43,7 @@ namespace Jint.DebuggerExample.Commands
             builder.AppendLine("Debugger commands:");
             foreach (var command in commands.Values)
             {
-                builder.AppendLine($"{command.Name,-15}{command.Description}");
+                builder.AppendLine($"    {command.Name,-15}{command.Description}");
             }
             return builder.ToString();
         }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Jint.DebuggerExample.Utilities;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
@@ -45,24 +46,36 @@ namespace Jint.DebuggerExample.UI
             running = false;
         }
 
-        public void WriteAt(string message, int left, int top)
+        /// <summary>
+        /// Writes content to the screen within the given bounds
+        /// </summary>
+        /// <param name="content">Content to write</param>
+        /// <param name="bounds">Column/row bounds of output</param>
+        public void DrawText(string content, Bounds bounds)
         {
-            CheckRunningOnUIThread();
-            if (top < 0)
-            {
-                // This will happen when the window is very small - since some areas will draw counting from the bottom
-                return;
-            }
-            Console.SetCursorPosition(left, top);
-            Console.Write(message);
-            ResetCursor();
+            var lines = content.SplitIntoLines();
+            DrawText(lines, bounds);
         }
 
-        public void ReplaceLine(string message, int top)
+        /// <summary>
+        /// Writes content (lines) to the screen within the given bounds
+        /// </summary>
+        /// <param name="lines">List of lines to write</param>
+        /// <param name="bounds">Column/row bounds of output</param>
+        public void DrawText(IList<string> lines, Bounds bounds)
         {
             CheckRunningOnUIThread();
-            message = message.PadRight(Columns, ' ');
-            WriteAt(message, 0, top);
+            var rect = bounds.ToAbsolute(this);
+
+            int lineIndex = 0;
+            for (int row = rect.Top; row < rect.Bottom; row++)
+            {
+                string line = lineIndex >= lines.Count ? String.Empty : lines[lineIndex++];
+                line = line.PadRight(rect.Width, ' ');
+                Console.SetCursorPosition(rect.Left, row);
+                Console.Write(line);
+            }
+            ResetCursor();
         }
 
         public void MoveCursor(int left, int top)
@@ -136,6 +149,10 @@ namespace Jint.DebuggerExample.UI
             {
                 // Just in case exception is thrown by SetBufferSize anyway
             }
+            catch (ArgumentException)
+            {
+                // Just in case exception is thrown by SetWindowPosition/SetBufferSize anyway
+            }
         }
 
         private void Redraw()
@@ -146,7 +163,7 @@ namespace Jint.DebuggerExample.UI
                 Clear();
                 foreach (var area in areas)
                 {
-                    area.Redraw();
+                    area.Update(force: true);
                 }
             }
             finally
@@ -171,6 +188,12 @@ namespace Jint.DebuggerExample.UI
                 {
                     HandleEvents();
                 }
+
+                foreach (var area in areas)
+                {
+                    area.Update();
+                }
+
                 lock (chores)
                 {
                     if (chores.Count > 0)

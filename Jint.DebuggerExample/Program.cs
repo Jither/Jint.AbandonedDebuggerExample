@@ -14,9 +14,12 @@ namespace Jint.DebuggerExample
         private static ScriptLoader scriptLoader;
 
         private static Display display;
-        private static MainDisplay mainDisplay;
+        private static ScriptDisplay scriptDisplay;
         private static Prompt prompt;
         private static ErrorDisplay errorDisplay;
+        private static TextDisplay textDisplay;
+
+        private static AreaToggler mainDisplayToggler;
 
         static void Main(string[] args)
         {
@@ -27,7 +30,8 @@ namespace Jint.DebuggerExample
                 .Add(new Command("out", "Step out", StepOut))
                 .Add(new Command("over", "Step over", StepOver))
                 .Add(new Command("into", "Step into", StepInto))
-                .Add(new Command("help", "Displays list of commands", Help))
+                .Add(new Command("help", "Display list of commands", ShowHelp))
+                .Add(new Command("source", "Display source view", ShowSource))
                 .Add(new Command("exit", "Exit the debuger", Exit));
 
             SetupUI();
@@ -51,13 +55,21 @@ namespace Jint.DebuggerExample
             SynchronizationContext.SetSynchronizationContext(new ConsoleSynchronizationContext(display));
             Dispatcher.Init(display);
 
-            mainDisplay = new MainDisplay(display);
+            mainDisplayToggler = new AreaToggler();
+
+            textDisplay = new TextDisplay(display);
+            scriptDisplay = new ScriptDisplay(display);
+
+            mainDisplayToggler
+                .Add(textDisplay)
+                .Add(scriptDisplay);
 
             prompt = new Prompt(display);
 
             errorDisplay = new ErrorDisplay(display);
 
-            display.Add(mainDisplay);
+            display.Add(scriptDisplay);
+            display.Add(textDisplay);
             display.Add(prompt);
             display.Add(errorDisplay);
         }
@@ -93,8 +105,10 @@ namespace Jint.DebuggerExample
             int startLine = info.CurrentStatement.Location.Start.Line;
             int endLine = info.CurrentStatement.Location.End.Line;
 
-            var script = scriptLoader.GetScript(source);
-            mainDisplay.Content = script.Lines[startLine - 1]; // Debugger counts lines from 1
+            scriptDisplay.Script = scriptLoader.GetScript(source);
+            scriptDisplay.ExecutingLocation = info.CurrentStatement.Location;
+
+            mainDisplayToggler.Show(scriptDisplay);
         }
 
         private static void Prompt_Command(string commandLine)
@@ -140,10 +154,16 @@ namespace Jint.DebuggerExample
             debugger.StepInto();
         }
 
-        private static void Help(string[] arguments)
+        private static void ShowSource(string[] arguments)
+        {
+            mainDisplayToggler.Show(scriptDisplay);
+        }
+
+        private static void ShowHelp(string[] arguments)
         {
             var help = commandManager.BuildHelp();
-            mainDisplay.Content = help;
+            textDisplay.Content = help;
+            mainDisplayToggler.Show(textDisplay);
         }
 
         private static void Exit(string[] arguments)

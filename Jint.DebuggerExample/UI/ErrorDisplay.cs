@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Jint.DebuggerExample.Utilities;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -6,7 +7,6 @@ namespace Jint.DebuggerExample.UI
 {
     public class ErrorDisplay : DisplayArea
     {
-        private Display display;
         private string error = null;
 
         public string Error
@@ -17,19 +17,19 @@ namespace Jint.DebuggerExample.UI
                 if (error != value)
                 {
                     error = value;
-                    Redraw();
+                    Invalidate();
                 }
             }
         }
 
-        public ErrorDisplay(Display display)
+        public ErrorDisplay(Display display) : base(display, new Bounds(0, -1, Length.Percent(100), 1))
         {
-            this.display = display;
+            
         }
 
         public override void Redraw()
         {
-            display.ReplaceLine(error ?? string.Empty, display.Rows - 1);
+            display.DrawText(Colorizer.Foreground(error ?? string.Empty, Colors.Error), bounds);
         }
     }
 }
