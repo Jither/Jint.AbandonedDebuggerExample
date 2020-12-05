@@ -8,11 +8,14 @@ namespace Jint.DebuggerExample.UI
 {
     public class Display : ISynchronizationQueue
     {
+        public int Columns { get; private set; }
+        public int Rows { get; private set; }
+        public event Action Resize;
+        public event Action Ready;
+
         private Thread uiThread;
 
         private List<Action> chores = new List<Action>();
-        public int Columns { get; private set; }
-        public int Rows { get; private set; }
         private int cursorLeft;
         private int cursorTop;
         private bool running;
@@ -22,7 +25,6 @@ namespace Jint.DebuggerExample.UI
         private ManualResetEventSlim waitForResize = new ManualResetEventSlim(false);
         private bool windowWasResized;
 
-        public event Action Resize;
 
         public void Start()
         {
@@ -46,6 +48,11 @@ namespace Jint.DebuggerExample.UI
         public void WriteAt(string message, int left, int top)
         {
             CheckRunningOnUIThread();
+            if (top < 0)
+            {
+                // This will happen when the window is very small - since some areas will draw counting from the bottom
+                return;
+            }
             Console.SetCursorPosition(left, top);
             Console.Write(message);
             ResetCursor();
@@ -55,16 +62,16 @@ namespace Jint.DebuggerExample.UI
         {
             CheckRunningOnUIThread();
             message = message.PadRight(Columns, ' ');
-            Console.SetCursorPosition(0, top);
-            Console.Write(message);
-            ResetCursor();
+            WriteAt(message, 0, top);
         }
 
         public void MoveCursor(int left, int top)
         {
             CheckRunningOnUIThread();
-            cursorLeft = left;
-            cursorTop = top;
+            // Area may have calculated negative cursor positions
+            // (e.g. when height of window is small and the area draws counting from bottom)
+            cursorLeft = Math.Max(0, left);
+            cursorTop = Math.Max(0 ,top);
             ResetCursor();
         }
 
@@ -101,6 +108,11 @@ namespace Jint.DebuggerExample.UI
 
         private void ResizeScreen()
         {
+            if (Console.WindowHeight == 0)
+            {
+                // This would cause IOExceptions further down. We'll keep the size from before.
+                return;
+            }
             Rows = Console.WindowHeight;
             Columns = Console.WindowWidth;
             try
@@ -128,10 +140,18 @@ namespace Jint.DebuggerExample.UI
 
         private void Redraw()
         {
-            Clear();
-            foreach (var area in areas)
+            Console.CursorVisible = false;
+            try
             {
-                area.Redraw();
+                Clear();
+                foreach (var area in areas)
+                {
+                    area.Redraw();
+                }
+            }
+            finally
+            {
+                Console.CursorVisible = true;
             }
         }
 
@@ -143,6 +163,7 @@ namespace Jint.DebuggerExample.UI
         private void RenderLoop()
         {
             running = true;
+            Ready?.Invoke();
 
             while (running)
             {

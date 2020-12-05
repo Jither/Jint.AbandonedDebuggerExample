@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Jint.DebuggerExample": {
+      "commandName": "Project",
+      "commandLineArgs": "ExampleScripts\\example.js"
+    }
+  }
+}

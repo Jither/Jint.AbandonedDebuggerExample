@@ -30,6 +30,11 @@ namespace Jint.DebuggerExample.UI
 
         public override void Redraw()
         {
+            // Note that when screen is redrawn, it will be cleared, including anything
+            // typed in the prompt (ReadLine). The content of the prompt will still be remembered,
+            // however, which means anything typed after redrawing will be appended to what was
+            // there before when pressing ENTER, and it will be possible to backspace over the "prompt>" text.
+            // There's no easy way around this. For now, don't resize mid-typing.
             Dispatcher.Invoke(() =>
             {
                 display.ReplaceLine(prompt + " ", display.Rows - 2);

@@ -6,7 +6,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Terminal.Gui" Version="1.0.0-pre.6" />
+    <ProjectReference Include="..\..\Jint\Jint\Jint.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="ExampleScripts\example.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

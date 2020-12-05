@@ -1,4 +1,7 @@
-﻿using Jint.DebuggerExample.UI;
+﻿using Jint.DebuggerExample.Commands;
+using Jint.DebuggerExample.Debug;
+using Jint.DebuggerExample.UI;
+using Jint.Runtime.Debugger;
 using System;
 using System.Threading;
 
@@ -7,6 +10,9 @@ namespace Jint.DebuggerExample
     class Program
     {
         private static CommandManager commandManager;
+        private static Debugger debugger;
+        private static ScriptLoader scriptLoader;
+
         private static Display display;
         private static MainDisplay mainDisplay;
         private static Prompt prompt;
@@ -14,28 +20,81 @@ namespace Jint.DebuggerExample
 
         static void Main(string[] args)
         {
-            commandManager = new CommandManager();
-            commandManager.Add(new Command("help", "Displays list of commands", Help));
-            commandManager.Add(new Command("exit", "Exit the debuger", Exit));
-            
+            commandManager = new CommandManager()
+                .Add(new Command("run", "Run without stepping", Run))
+                .Add(new Command("pause", "Pause execution", Pause))
+                .Add(new Command("stop", "Pause execution", Stop))
+                .Add(new Command("out", "Step out", StepOut))
+                .Add(new Command("over", "Step over", StepOver))
+                .Add(new Command("into", "Step into", StepInto))
+                .Add(new Command("help", "Displays list of commands", Help))
+                .Add(new Command("exit", "Exit the debuger", Exit));
+
+            SetupUI();
+
+            prompt.Command += Prompt_Command;
+
+            SetupDebugger(args);
+
+            prompt.Start();
+            display.Start();
+        }
+
+        private static void SetupUI()
+        {
             display = new Display();
-            
-            Dispatcher.Init(display);
+            display.Ready += Display_Ready;
+
+            // Simple Dispatcher and SynchronizationContext do the same job as in a typical GUI:
+            // - SynchronizationContext Keeps async code continuations running on the main (UI) thread
+            // - Dispatcher allows other threads to invoke Actions on the main (UI) thread
             SynchronizationContext.SetSynchronizationContext(new ConsoleSynchronizationContext(display));
+            Dispatcher.Init(display);
 
             mainDisplay = new MainDisplay(display);
 
             prompt = new Prompt(display);
-            prompt.Command += Prompt_Command;
 
             errorDisplay = new ErrorDisplay(display);
 
             display.Add(mainDisplay);
             display.Add(prompt);
             display.Add(errorDisplay);
+        }
 
-            prompt.Start();
-            display.Start();
+        private static void SetupDebugger(string[] paths)
+        {
+            debugger = new Debugger();
+
+            debugger.Pause += Debugger_Pause;
+
+            scriptLoader = new ScriptLoader(debugger);
+
+            foreach (var path in paths)
+            {
+                scriptLoader.Load(path);
+            }
+        }
+
+        private static void Display_Ready()
+        {
+            debugger.Execute();
+        }
+
+        private static void Debugger_Pause(DebugInformation info)
+        {
+            // We're being called from the Jint thread. Execute on UI thread:
+            Dispatcher.Invoke(() => UpdateDisplay(info));
+        }
+
+        private static void UpdateDisplay(DebugInformation info)
+        {
+            string source = info.CurrentStatement.Location.Source;
+            int startLine = info.CurrentStatement.Location.Start.Line;
+            int endLine = info.CurrentStatement.Location.End.Line;
+
+            var script = scriptLoader.GetScript(source);
+            mainDisplay.Content = script.Lines[startLine - 1]; // Debugger counts lines from 1
         }
 
         private static void Prompt_Command(string commandLine)
@@ -51,6 +110,36 @@ namespace Jint.DebuggerExample
             }
         }
 
+        private static void Run(string[] arguments)
+        {
+            debugger.Run();
+        }
+
+        private static void Pause(string[] arguments)
+        {
+            debugger.Stop();
+        }
+
+        private static void Stop(string[] arguments)
+        {
+            debugger.Cancel();
+        }
+
+        private static void StepOver(string[] arguments)
+        {
+            debugger.StepOver();
+        }
+
+        private static void StepOut(string[] arguments)
+        {
+            debugger.StepOut();
+        }
+
+        private static void StepInto(string[] arguments)
+        {
+            debugger.StepInto();
+        }
+
         private static void Help(string[] arguments)
         {
             var help = commandManager.BuildHelp();
@@ -59,6 +148,7 @@ namespace Jint.DebuggerExample
 
         private static void Exit(string[] arguments)
         {
+            debugger.Cancel();
             prompt.Stop();
             display.Stop();
         }

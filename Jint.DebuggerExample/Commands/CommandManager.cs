@@ -4,21 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace Jint.DebuggerExample
+namespace Jint.DebuggerExample.Commands
 {
-    public class Command
-    {
-        public string Name { get; }
-        public string Description { get; }
-        public Action<string[]> Handler { get; }
-
-        public Command(string name, string description, Action<string[]> handler)
-        {
-            Name = name;
-            Description = description;
-            Handler = handler;
-        }
-    }
     public class CommandManager
     {
         private Dictionary<string, Command> commands = new Dictionary<string, Command>();
@@ -26,7 +13,7 @@ namespace Jint.DebuggerExample
 
         public bool Parse(string commandLine)
         {
-            List<string> parts = ArgumentSeparator.Split(commandLine).Where(p => p != String.Empty).ToList();
+            List<string> parts = ArgumentSeparator.Split(commandLine).Where(p => p != string.Empty).ToList();
             if (parts.Count == 0)
             {
                 // No command is OK
@@ -44,9 +31,10 @@ namespace Jint.DebuggerExample
             return false;
         }
 
-        public void Add(Command command)
+        public CommandManager Add(Command command)
         {
             commands.Add(command.Name, command);
+            return this;
         }
 
         public string BuildHelp()

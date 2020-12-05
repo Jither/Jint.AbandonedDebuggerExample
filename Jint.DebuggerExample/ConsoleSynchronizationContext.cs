@@ -1,16 +1,10 @@
-﻿using System;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 
 namespace Jint.DebuggerExample
 {
-    public interface ISynchronizationQueue
-    {
-        void Add(Action chore);
-    }
-
     public class ConsoleSynchronizationContext : SynchronizationContext
     {
         private ISynchronizationQueue queue;
