@@ -24,7 +24,7 @@ namespace Jint.DebuggerExample.UI
             }
         }
 
-        public TextDisplay(Display display) : base(display, new Bounds(0, 0, Length.Percent(100), -2))
+        public TextDisplay(Display display, Bounds bounds) : base(display, bounds)
         {
         }
 

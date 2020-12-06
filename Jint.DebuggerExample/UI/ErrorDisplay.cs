@@ -22,7 +22,7 @@ namespace Jint.DebuggerExample.UI
             }
         }
 
-        public ErrorDisplay(Display display) : base(display, new Bounds(0, -1, Length.Percent(100), 1))
+        public ErrorDisplay(Display display, Bounds bounds) : base(display, bounds)
         {
             
         }

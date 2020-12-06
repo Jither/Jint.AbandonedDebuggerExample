@@ -41,7 +41,7 @@ namespace Jint.DebuggerExample.UI
             }
         }
 
-        public ScriptDisplay(Display display, Debugger debugger) : base(display, new Bounds(0, 0, Length.Percent(100), -2))
+        public ScriptDisplay(Display display, Debugger debugger, Bounds bounds) : base(display, bounds)
         {
             this.debugger = debugger;
         }

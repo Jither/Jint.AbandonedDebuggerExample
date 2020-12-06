@@ -2,8 +2,12 @@
 using Jint.DebuggerExample.Debug;
 using Jint.DebuggerExample.UI;
 using Jint.DebuggerExample.Utilities;
+using Jint.Native;
+using Jint.Native.Array;
+using Jint.Native.Object;
 using Jint.Runtime.Debugger;
 using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 
@@ -19,8 +23,8 @@ namespace Jint.DebuggerExample
         private static ScriptDisplay scriptDisplay;
         private static Prompt prompt;
         private static ErrorDisplay errorDisplay;
-        private static TextDisplay callStackDisplay;
-        private static TextDisplay helpDisplay;
+        private static InfoDisplay infoDisplay;
+        private static HelpDisplay helpDisplay;
 
         private static AreaToggler mainDisplayToggler;
 
@@ -35,7 +39,6 @@ namespace Jint.DebuggerExample
                 .Add(new Command("up", "Step out", StepOut))
                 .Add(new Command("break", "bp", "Toggle breakpoint", ToggleBreakPoint))
                 .Add(new Command("list", "l", "Display source view", ShowSource))
-                .Add(new Command("callstack", "Display call stack", ShowCallStack))
                 .Add(new Command("help", "h", "Display list of commands", ShowHelp))
                 .Add(new Command("exit", "x", "Exit the debuger", Exit));
 
@@ -62,22 +65,19 @@ namespace Jint.DebuggerExample
 
             mainDisplayToggler = new AreaToggler();
 
-            scriptDisplay = new ScriptDisplay(display, debugger);
-            callStackDisplay = new TextDisplay(display);
-            helpDisplay = new TextDisplay(display);
+            scriptDisplay = new ScriptDisplay(display, debugger, new Bounds(0, 0, Length.Percent(60), -2));
+            infoDisplay = new InfoDisplay(display, new Bounds(Length.Percent(60), 0, Length.Percent(40), -2));
+            helpDisplay = new HelpDisplay(display, new Bounds(0, 0, Length.Percent(100), -2));
+            prompt = new Prompt(display, new Bounds(0, -2, Length.Percent(100), 1));
+            errorDisplay = new ErrorDisplay(display, new Bounds(0, -1, Length.Percent(100), 1));
 
             mainDisplayToggler
                 .Add(scriptDisplay)
-                .Add(callStackDisplay)
                 .Add(helpDisplay);
-
-            prompt = new Prompt(display);
-
-            errorDisplay = new ErrorDisplay(display);
 
             display.Add(scriptDisplay);
             display.Add(helpDisplay);
-            display.Add(callStackDisplay);
+            display.Add(infoDisplay);
             display.Add(prompt);
             display.Add(errorDisplay);
         }
@@ -126,15 +126,37 @@ namespace Jint.DebuggerExample
             scriptDisplay.Script = scriptLoader.GetScript(source);
             scriptDisplay.ExecutingLocation = info.CurrentStatement.Location;
 
-            StringBuilder builder = new StringBuilder();
-            builder.AppendLine(Colorizer.Foreground("Call stack", Colors.Header));
+            StringBuilder infoBuilder = new StringBuilder();
+            infoBuilder.AppendLine(Colorizer.Foreground("Scopes", Colors.Header));
+            infoBuilder.AppendLine(Colorizer.Foreground("Local", Colors.Header2));
+            BuildScope(infoBuilder, info.Locals);
+
+            infoBuilder.AppendLine(Colorizer.Foreground("Global", Colors.Header2));
+            BuildScope(infoBuilder, info.Globals);
+
+            infoBuilder.AppendLine();
+            infoBuilder.AppendLine(Colorizer.Foreground("Call stack", Colors.Header));
             foreach (var item in info.CallStack)
             {
-                builder.AppendLine($"    {item}");
+                infoBuilder.AppendLine($"  {item}");
             }
-            callStackDisplay.Content = builder.ToString();
+            infoDisplay.Content = infoBuilder.ToString();
 
             mainDisplayToggler.Show(scriptDisplay);
+        }
+
+        private static void BuildScope(StringBuilder builder, Dictionary<string, JsValue> scope)
+        {
+            foreach (var item in scope)
+            {
+                string value = item.Value switch
+                {
+                    ArrayInstance _ => "[...]",
+                    ObjectInstance _ => "{...}",
+                    _ => item.Value.ToString()
+                };
+                builder.AppendLine($"  {item.Key} : {value}");
+            }
         }
 
         private static void Prompt_Command(string commandLine)
@@ -225,11 +247,6 @@ namespace Jint.DebuggerExample
         private static void ShowSource(string[] arguments)
         {
             mainDisplayToggler.Show(scriptDisplay);
-        }
-
-        private static void ShowCallStack(string[] arguments)
-        {
-            mainDisplayToggler.Show(callStackDisplay);
         }
 
         private static void ShowHelp(string[] arguments)

@@ -13,7 +13,7 @@ namespace Jint.DebuggerExample.UI
 
         public event Action<string> Command;
 
-        public Prompt(Display display) : base(display, new Bounds(0, -2, Length.Percent(100), 1))
+        public Prompt(Display display, Bounds bounds) : base(display, bounds)
         {
         }
 
