@@ -1,5 +1,7 @@
 Jint Debugger Example
 =====================
+__Important note:__ Abandoned in favor of this simpler (and yet more complete) example: https://github.com/Jither/Jint.DebuggerExample
+
 An example of how to implement a debugger user interface for [Jint](https://github.com/sebastienros/Jint).
 
 Currently in *very* early stages, it is intended to be cross platform. To that end, it's console based - however,
